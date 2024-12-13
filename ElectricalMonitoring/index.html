@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>家用电器监测</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.2.6/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body>
+    <div>
+        <h2>实时电流：<span id = "current">0</span>A</h2>
+        <canvas id = "currentChart"></canvas>
+    </div>
+    <script>
+        //MQTT客户端配置
+        const client = mqtt.connect('ws://broker.emqx.io:8083/mqtt',{
+            username:"helloword",
+            password:'331800'
+
+        });
+        //图表配置
+        const ctx = document.getElementById('currentChart').getContext('2d');
+        const chart = new Chart(ctx,{
+            type:'line',
+            data:{
+                labels:[],
+                datasets:[{
+                    labels:'电流(A)',
+                    data:[],
+                    borderColor:'rgb(75,192,192)',
+                    tension:0.1
+                }]
+            },
+            options:{
+                responsive:true,
+                scales:{
+                    y:{
+                        beginAtZero:true
+                    }
+                }
+            }
+        });
+        //MQTT订阅
+        client.on ('connect',()=>{
+            client.subscribe('/home/power/current');
+        });
+        client.on('message',(topic,message)=>{
+            const current =  parseFloat(message.toString());
+            document.getElementById('current').textContent = current.toFixed(2);
+            //更新图表
+            const now =new Date().toLocaleTimeString();
+            chart.data.labels.push(now);
+            chart.data.datasets[0].data.push(current);
+           
+            //保持最近30个点的数据点
+            
+            if (chart.data.labels.length>30){
+                chart.data.labels.shift()
+                chart.data.datasets[0].data.shift()
+                
+
+            }
+            chart.update()
+        })
+    </script>
+</body>
+</html>
