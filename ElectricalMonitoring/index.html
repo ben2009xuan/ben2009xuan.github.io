@@ -14,11 +14,11 @@
     </div>
     <script>
         // MQTT客户端配置
-        const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
+        var connstr = 'wss://broker.emqx.io:8084/mqtt';
+        const client = mqtt.connect(connstr, {
             username: "helloword",
             password: '331800'
         });
-
         // 图表配置
         const ctx = document.getElementById('currentChart').getContext('2d');
         const chart = new Chart(ctx, {
@@ -49,19 +49,21 @@
         });
 
         client.on('message', (topic, message) => {
-            const current = parseFloat(message.toString());
-            document.getElementById('current').textContent = current.toFixed(2);
-            // 更新图表
-            const now = new Date().toLocaleTimeString();
-            chart.data.labels.push(now);
-            chart.data.datasets[0].data.push(current);
+            if (topic === "/home/power/current"){
+                const current = parseFloat(message.toString());
+                document.getElementById('current').textContent = current.toFixed(2);
+                // 更新图表
+                const now = new Date().toLocaleTimeString();
+                chart.data.labels.push(now);
+                chart.data.datasets[0].data.push(current);
 
-            // 保持最近30个点的数据点
-            if (chart.data.labels.length > 30) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
+                // 保持最近30个点的数据点
+                if (chart.data.labels.length > 30) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                }
+                chart.update();
             }
-            chart.update();
         });
 
         // 按钮事件处理
@@ -70,7 +72,7 @@
         });
 
         document.getElementById('stopButton').addEventListener('click', () => {
-            client.publish('/home/back', '2');
+            client.publish('/home/back', '0');
         });
     </script>
 </body>
