@@ -6,11 +6,36 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  
 </head>
 <body>
-    <div>
-        <h2>实时电流：<span id="current">0</span>A</h2>
-        <button id="startButton">开启</button>
-        <button id="stopButton">关闭</button>
-        <canvas id="currentChart"></canvas>
+    <div> 
+        <div style="display: flex; flex-direction: row;">
+            <div>
+                <h2>电器控制</h2>
+                <button id="startButton">开启</button>
+                <button id="stopButton">关闭</button>
+            </div>
+            <div style="margin-left: 40px;">
+                <h2>参数设置</h2>
+                <div>
+                    最大电流：<input type="text" id="maxCurrent" value="12">
+                </div>
+                <div>
+                    最高温度：<input type="text" id="maxTemperture" value="30">
+                </div>
+                <button id="paramSetting" >设置</button>
+            </div>  
+        </div>
+
+
+        <div style="display: flex; flex-direction: row;justify-content:space-between;">
+            <div style="flex:1">
+                <div><h2>实时电流：<span id="current">0</span>A</h2></div>
+                <canvas id="currentChart"></canvas>
+            </div>
+            <div style="flex:1">
+                <div><h2>实时温度：<span id="temperture">0</span>摄氏度</h2></div>
+                <canvas id="tempertureChart"></canvas>
+            </div>
+        </div>
     </div>
     <script>
         // MQTT客户端配置
@@ -31,34 +56,59 @@
                     data: [],
                     borderColor: 'rgb(75,192,192)',
                     tension: 0.1
+                },
+                {
+                    label: '最大电流(A)',
+                    data: [],
+                    borderDash: [5, 5],
+                    borderColor: 'rgb(75,192,192)',
+                    tension: 0.1
                 }]
             },
             options: {
-                responsive: true,
                 scales: {
                     y: {
                         beginAtZero: true,
-                        suggestedLine: {
-                            value: () =>用电器的最大工作电流, // 红线的位置
-                            color: 'red',
-                            borderColor: 'red',
-                            borderWidth: 2,
-                            label: {
-                                display: true,
-                                text: `用电器的最大工作电流：${用电器的最大工作电流}A`
-                            }
-                        }
                     }
-                }
+                },
+            }
+        });
+        const ctxtem = document.getElementById('tempertureChart').getContext('2d');
+        const charttem = new Chart(ctxtem, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '温度（℃）',
+                    data: [],
+                    borderColor: 'rgb(75,192,192)',
+                    tension: 0.1
+                },
+                {
+                    label: '最大温度(℃)',
+                    data: [],
+                    borderDash: [5, 5],
+                    borderColor: 'rgb(75,192,192)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                    }
+                },
             }
         });
 
+
+        var maxCurrent;
+
         // 询问用户输入最大工作电流
         function askForMaxCurrent() {
-            let maxCurrent = prompt("请输入用电器的最大工作电流:");
+            maxCurrent  =  parseFloat(document.getElementById('maxCurrent').value);
             if (maxCurrent !== null && !isNaN(maxCurrent)) {
                 maxCurrent = parseFloat(maxCurrent);
-               用电器的最大工作电流 = maxCurrent; // 将用户输入的电流设置为用电器的最大工作电流
                 client.publish('/home/back', maxCurrent.toFixed(0) + 'A'); // 发送用电器的最大工作电流到MQTT主题
             } else {
                 alert("请输入有效的电流值");
@@ -69,6 +119,7 @@
         client.on('connect', () => {
             client.subscribe('/home/power/current');
             client.subscribe('/home/back');
+            client.subscribe('/home/power/temperture');
             askForMaxCurrent(); // 连接后询问用户输入用电器的最大工作电流
         });
 
@@ -81,15 +132,41 @@
                 chart.data.labels.push(now);
                 chart.data.datasets[0].data.push(current);
 
+                chart.data.datasets[1].data.push(maxCurrent);
+
                 // 保持最近30个点的数据点
                 if (chart.data.labels.length > 30) {
                     chart.data.labels.shift();
                     chart.data.datasets[0].data.shift();
                 }
                 chart.update();
+            
 
                 // 如果实时电流超过用电器的最大工作电流，发送关闭信号
-                if (current >用电器的最大工作电流) {
+                if (current >maxCurrent) {
+                    client.publish('/home/back', '0');
+                }
+            }
+            else if (topic === "/home/power/temperture"){
+                const temcurrent = parseFloat(message.toString());
+                document.getElementById('temcurrent').textContent = temcurrent.toFixed(2);
+                // 更新图表
+                const nowtem = new Date().toLocaleTimeString();
+                charttem.data.labels.push(nowtem);
+                charttem.data.datasets[0].data.push(temcurrent);
+
+                charttem.data.datasets[1].data.push(50);
+
+                // 保持最近30个点的数据点
+                if (charttem.data.labels.length > 30) {
+                    charttem.data.labels.shift();
+                    charttem.data.datasets[0].data.shift();
+                }
+                charttem.update();
+            
+
+                // 如果实时电流超过用电器的最大工作电流，发送关闭信号
+                if (current >maxCurrent) {
                     client.publish('/home/back', '0');
                 }
             }
@@ -102,6 +179,11 @@
 
         document.getElementById('stopButton').addEventListener('click', () => {
             client.publish('/home/back', '0');
+        });
+
+        document.getElementById('paramSetting').addEventListener('click', () => {
+            maxCurrent = parseFloat(document.getElementById('maxCurrent').value);
+            client.publish('/home/back', maxCurrent.toFixed(0) + 'A'); // 发送用电器的最大工作电流到MQTT主题
         });
     </script>
 </body>
