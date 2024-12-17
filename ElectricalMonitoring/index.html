@@ -2,8 +2,8 @@
 <html>
 <head>
     <title>家用电器监测</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.2.6/mqtt.min.js"></script> 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.2.6/mqtt.min.js"></script>  
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  
 </head>
 <body>
     <div>
@@ -19,6 +19,7 @@
             username: "helloword",
             password: '331800'
         });
+
         // 图表配置
         const ctx = document.getElementById('currentChart').getContext('2d');
         const chart = new Chart(ctx, {
@@ -36,16 +37,39 @@
                 responsive: true,
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        suggestedLine: {
+                            value: () =>用电器的最大工作电流, // 红线的位置
+                            color: 'red',
+                            borderColor: 'red',
+                            borderWidth: 2,
+                            label: {
+                                display: true,
+                                text: `用电器的最大工作电流：${用电器的最大工作电流}A`
+                            }
+                        }
                     }
                 }
             }
         });
 
+        // 询问用户输入最大工作电流
+        function askForMaxCurrent() {
+            let maxCurrent = prompt("请输入用电器的最大工作电流:");
+            if (maxCurrent !== null && !isNaN(maxCurrent)) {
+                maxCurrent = parseFloat(maxCurrent);
+               用电器的最大工作电流 = maxCurrent; // 将用户输入的电流设置为用电器的最大工作电流
+                client.publish('/home/back', maxCurrent.toFixed(0) + 'A'); // 发送用电器的最大工作电流到MQTT主题
+            } else {
+                alert("请输入有效的电流值");
+            }
+        }
+
         // MQTT订阅
         client.on('connect', () => {
             client.subscribe('/home/power/current');
             client.subscribe('/home/back');
+            askForMaxCurrent(); // 连接后询问用户输入用电器的最大工作电流
         });
 
         client.on('message', (topic, message) => {
@@ -63,6 +87,11 @@
                     chart.data.datasets[0].data.shift();
                 }
                 chart.update();
+
+                // 如果实时电流超过用电器的最大工作电流，发送关闭信号
+                if (current >用电器的最大工作电流) {
+                    client.publish('/home/back', '0');
+                }
             }
         });
 
