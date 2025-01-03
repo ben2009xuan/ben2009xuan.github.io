@@ -105,6 +105,7 @@
         var maxCurrent;
 
         // 询问用户输入最大工作电流
+        
         function askForMaxCurrent() {
             maxCurrent  =  parseFloat(document.getElementById('maxCurrent').value);
             if (maxCurrent !== null && !isNaN(maxCurrent)) {
@@ -167,6 +168,8 @@
 
                 // 如果实时电流超过用电器的最大工作电流，发送关闭信号
                 if (current >maxCurrent) {
+                    client.publish('/home/back', '0');
+                if (current >temcurrent) {
                     client.publish('/home/back', '0');
                 }
             }
