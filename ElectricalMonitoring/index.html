@@ -47,7 +47,8 @@
 
         // 图表配置
         const ctx = document.getElementById('currentChart').getContext('2d');
-        const chart = new Chart(ctx, {
+        const chart = new Chart(ctx, 
+        {
             type: 'line',
             data: {
                 labels: [],
@@ -72,7 +73,8 @@
                     }
                 },
             }
-        });
+        }
+        );
         const ctxtem = document.getElementById('tempertureChart').getContext('2d');
         const charttem = new Chart(ctxtem, {
             type: 'line',
