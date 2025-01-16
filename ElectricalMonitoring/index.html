@@ -127,7 +127,7 @@
         });
 
         client.on('message', (topic, message) => {
-            if (topic === "/home/power/current"){
+            if (topic === "/home/power/current") {
                 const current = parseFloat(message.toString());
                 document.getElementById('current').textContent = current.toFixed(2);
                 // 更新图表
@@ -149,8 +149,7 @@
                 if (current >maxCurrent) {
                     client.publish('/home/back', '0');
                 }
-            }
-            else if (topic === "/home/power/temperture"){
+            } else if (topic === "/home/power/temperture"){
                 const temcurrent = parseFloat(message.toString());
                 document.getElementById('temcurrent').textContent = temcurrent.toFixed(2);
                 // 更新图表
@@ -171,11 +170,12 @@
                 // 如果实时电流超过用电器的最大工作电流，发送关闭信号
                 if (current >maxCurrent) {
                     client.publish('/home/back', '0');
+                }
                 if (current >temcurrent) {
                     client.publish('/home/back', '0');
                 }
             }
-        };
+        });
 
         // 按钮事件处理
         document.getElementById('startButton').addEventListener('click', () => {
